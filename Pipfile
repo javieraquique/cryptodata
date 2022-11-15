@@ -9,6 +9,8 @@ pandas = "*"
 ipywidgets = "*"
 plotly = "==5.11.0"
 nbformat = "*"
+pytest = "*"
+pytest-cov = "*"
 
 [dev-packages]
 
