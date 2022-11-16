@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Docstring
 """
   ______ .______     ____    ____ .______   .___________.  ______    _______       ___   .___________.    ___      
  /      ||   _  \    \   \  /   / |   _  \  |           | /  __  \  |       \     /   \  |           |   /   \     
@@ -14,10 +13,11 @@
  Datos extraídos de kraken.com a través de la API krakenex
 """
 
-# # Importando librerías
+# Importando librerías
 import krakenex
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 # Definiendo variables locales
 # Asignando API de Kraken como variable global
@@ -26,7 +26,8 @@ kraken = krakenex.API()
 # Asignando criptomonédas a analizar y tipos de cambio
 cryptos = ["BTC", "ETH"]
 currencies = ["USD", "EUR"]
-
+cryptos_dict = dict(zip(('Bitcoin ₿', 'Ethereum ⧫'),cryptos))
+currencies_dict = dict(zip(('Dólar estadounidense $', 'Euro €'), currencies))
 
 # Definiendo funciones
 
@@ -46,16 +47,19 @@ def cleaningData(df):
 
 
 # Función para extraer los datos
+@st.cache
 def getData():
     ohlc = []
     for crypto in cryptos:
         for currency in currencies:
             try:
-                fresh_data = kraken.query_public("OHLC", {"pair": crypto + currency})
+                fresh_data = kraken.query_public(
+                    "OHLC", 
+                    {"pair": crypto + currency})
                 ohlc.append(fresh_data)
-            except kraken.query_public("OHLC", {"pair": crypto + currency})[
-                "error"
-            ] as e:
+            except kraken.query_public(
+                    "OHLC", 
+                    {"pair": crypto + currency})["error"] as e:
                 print(e)
 
     return ohlc
@@ -96,7 +100,7 @@ def calculateRsi(df, periods=14, ema=True):
     up = close_delta.clip(lower=0)
     down = -1 * close_delta.clip(upper=0)
 
-    if ema == True:
+    if ema:
         # Use exponential moving average
         ma_up = up.ewm(com=periods - 1, adjust=True, min_periods=periods).mean()
         ma_down = down.ewm(com=periods - 1, adjust=True, min_periods=periods).mean()
@@ -139,16 +143,23 @@ def calculateIndicators(df):
 # Definiendo la función principal
 def main():
 
+    st.title('cryptoData')
+    st.header('Indicadores de criptoactivos en tiempo real!')
+    st.caption('Datos extraídos de la API Krakenex')
+
     # Extrayendo datos
+    data_load_state = st.text('Cargando datos...')
     data = getData()
 
     # Validando errores
     for x in data:
         if list(x.values())[0]:
-            print(f"Se ha producido el siguiente error: {list(x.values())[0][0]}")
+            st.warning(f"Se ha producido el siguiente error: {list(x.values())[0][0]}", icon="⚠️")
+            # print(f"Se ha producido el siguiente error: {list(x.values())[0][0]}")
             break
         else:
-            print("Datos cargados correctamente")
+            # st.success('Datos cargados correctamente!', icon="✅")
+            data_load_state.text("Datos cargados correctamente 👍")
 
     # Construyendo Data Frame
     df = buildDf(data)
@@ -160,103 +171,111 @@ def main():
     # Calculado indicadores
     df = calculateIndicators(df)
 
+    # Generando desplegable criptoactivo
+    crypto_selected = st.selectbox(
+    'Seleccione el criptoactivo a analizar',
+    ('Bitcoin ₿', 'Ethereum ⧫'))
+
+    currency_selected = st.selectbox(
+    'Tipo de cambio',
+    ('Dólar estadounidense $', 'Euro €'))
+
     # Generando visualizaciones
-    df_test = df[df["pair_name"] == "XXBTZUSD"]
+    # df_test = df[df["pair_name"] == "XXBTZUSD"]
 
     # Gráfico precio
+    # hovertext = []
+    # for i in range(len(df_test["open"])):
+    #     hovertext.append("<br>Precio: " + str(df_test["close"][i]))
 
-    hovertext = []
-    for i in range(len(df_test["open"])):
-        hovertext.append("<br>Precio: " + str(df_test["close"][i]))
+    # fig = go.Figure(
+    #     data=go.Ohlc(
+    #         x=df_test["time"],
+    #         open=df_test["open"],
+    #         high=df_test["high"],
+    #         low=df_test["low"],
+    #         close=df_test["close"],
+    #         text=hovertext,
+    #         hoverinfo="text",
+    #     )
+    # )
 
-    fig = go.Figure(
-        data=go.Ohlc(
-            x=df_test["time"],
-            open=df_test["open"],
-            high=df_test["high"],
-            low=df_test["low"],
-            close=df_test["close"],
-            text=hovertext,
-            hoverinfo="text",
-        )
-    )
+    # fig.update_layout(
+    #     title="Precio histórico. Últimos 720 periodos",
+    #     yaxis_title="Precio del par XXBTZUSD",
+    # )
 
-    fig.update_layout(
-        title="Precio histórico. Últimos 720 periodos",
-        yaxis_title="Precio del par XXBTZUSD",
-    )
-
-    fig.show()
+    # fig.show()
 
     # Gráfico média móvil
-    hovertext = []
-    for i in range(len(df_test["open"])):
-        hovertext.append("<br>Precio: " + str(df_test["close"][i]))
+    # hovertext = []
+    # for i in range(len(df_test["open"])):
+    #     hovertext.append("<br>Precio: " + str(df_test["close"][i]))
 
-    fig = go.Figure(
-        data=[
-            go.Ohlc(
-                x=df_test["time"],
-                open=df_test["open"],
-                high=df_test["high"],
-                low=df_test["low"],
-                close=df_test["close"],
-                text=hovertext,
-                hoverinfo="text",
-                name="Precio",
-            ),
-            go.Scatter(
-                x=df_test["time"],
-                y=df_test["SMA25"],
-                line=dict(color="blue", width=1),
-                name="Media móvil 25 períodos",
-            ),
-        ]
-    )
+    # fig = go.Figure(
+    #     data=[
+    #         go.Ohlc(
+    #             x=df_test["time"],
+    #             open=df_test["open"],
+    #             high=df_test["high"],
+    #             low=df_test["low"],
+    #             close=df_test["close"],
+    #             text=hovertext,
+    #             hoverinfo="text",
+    #             name="Precio",
+    #         ),
+    #         go.Scatter(
+    #             x=df_test["time"],
+    #             y=df_test["SMA25"],
+    #             line=dict(color="blue", width=1),
+    #             name="Media móvil 25 períodos",
+    #         ),
+    #     ]
+    # )
 
-    fig.update_layout(
-        title="Media móvil. Últimos 720 periodos", yaxis_title="Precio del par XXBTZUSD"
-    )
+    # fig.update_layout(
+    #     title="Media móvil. Últimos 720 periodos", yaxis_title="Precio del par XXBTZUSD"
+    # )
 
-    fig.show()
+    # fig.show()
 
-    # Gráfico RSI
-    hovertext = []
-    for i in range(len(df_test["open"])):
-        hovertext.append("<br>Precio: " + str(df_test["close"][i]))
-    layout = {"yaxis": {"domain": [0, 0.33]}, "yaxis2": {"domain": [0.33, 1]}}
-    fig = go.Figure(
-        data=[
-            go.Ohlc(
-                x=df_test["time"],
-                open=df_test["open"],
-                high=df_test["high"],
-                low=df_test["low"],
-                close=df_test["close"],
-                text=hovertext,
-                hoverinfo="text",
-                name="Precio",
-                yaxis="y2",
-            ),
-            go.Scatter(
-                x=df_test["time"],
-                y=df_test["RSI"],
-                line=dict(color="purple", width=1),
-                name="Índice de fortaleza realativa",
-                yaxis="y",
-            ),
-        ],
-        layout=layout,
-    )
+    # # Gráfico RSI
+    # hovertext = []
+    # for i in range(len(df_test["open"])):
+    #     hovertext.append("<br>Precio: " + str(df_test["close"][i]))
+    # layout = {"yaxis": {"domain": [0, 0.33]}, "yaxis2": {"domain": [0.33, 1]}}
+    # fig = go.Figure(
+    #     data=[
+    #         go.Ohlc(
+    #             x=df_test["time"],
+    #             open=df_test["open"],
+    #             high=df_test["high"],
+    #             low=df_test["low"],
+    #             close=df_test["close"],
+    #             text=hovertext,
+    #             hoverinfo="text",
+    #             name="Precio",
+    #             yaxis="y2",
+    #         ),
+    #         go.Scatter(
+    #             x=df_test["time"],
+    #             y=df_test["RSI"],
+    #             line=dict(color="purple", width=1),
+    #             name="Índice de fortaleza realativa",
+    #             yaxis="y",
+    #         ),
+    #     ],
+    #     layout=layout,
+    # )
 
-    fig.update_layout(
-        title="Índice de fortaleza relativa (RSI). Últimos 720 periodos",
-        yaxis_title="Precio del par XXBTZUSD",
-        showlegend=False,
-        xaxis_rangeslider_visible=False,
-    )
+    # fig.update_layout(
+    #     title="Índice de fortaleza relativa (RSI). Últimos 720 periodos",
+    #     yaxis_title="Precio del par XXBTZUSD",
+    #     showlegend=False,
+    #     xaxis_rangeslider_visible=False,
+    # )
 
-    fig.show()
+    # fig.show()
 
 
 if __name__ == "__main__":
