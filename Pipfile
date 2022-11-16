@@ -6,6 +6,12 @@ name = "pypi"
 [packages]
 krakenex = "*"
 pandas = "*"
+ipywidgets = "*"
+plotly = "==5.11.0"
+nbformat = "*"
+pytest = "*"
+pytest-cov = "*"
+streamlit = "*"
 
 [dev-packages]
 
