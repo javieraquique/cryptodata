@@ -24,10 +24,10 @@ import streamlit as st
 kraken = krakenex.API()
 
 # Asignando criptomonédas a analizar y tipos de cambio
-cryptos = ["BTC", "ETH"]
+cryptos = ["XBT", "ETH"]
 currencies = ["USD", "EUR"]
-cryptos_dict = dict(zip(('Bitcoin ₿', 'Ethereum ⧫'),cryptos))
-currencies_dict = dict(zip(('Dólar estadounidense $', 'Euro €'), currencies))
+cryptos_dict = dict(zip(("Bitcoin ₿", "Ethereum ⧫"), cryptos))
+currencies_dict = dict(zip(("Dólar estadounidense $", "Euro €"), currencies))
 
 # Definiendo funciones
 
@@ -53,13 +53,11 @@ def getData():
     for crypto in cryptos:
         for currency in currencies:
             try:
-                fresh_data = kraken.query_public(
-                    "OHLC", 
-                    {"pair": crypto + currency})
+                fresh_data = kraken.query_public("OHLC", {"pair": crypto + currency})
                 ohlc.append(fresh_data)
-            except kraken.query_public(
-                    "OHLC", 
-                    {"pair": crypto + currency})["error"] as e:
+            except kraken.query_public("OHLC", {"pair": crypto + currency})[
+                "error"
+            ] as e:
                 print(e)
 
     return ohlc
@@ -143,18 +141,21 @@ def calculateIndicators(df):
 # Definiendo la función principal
 def main():
 
-    st.title('cryptoData')
-    st.header('Indicadores de criptoactivos en tiempo real!')
-    st.caption('Datos extraídos de la API Krakenex')
+    st.title("cryptoData")
+    st.header("Indicadores de criptoactivos en tiempo real!")
+    st.caption("Datos extraídos de la API Krakenex")
 
     # Extrayendo datos
-    data_load_state = st.text('Cargando datos...')
+    data_load_state = st.text("Cargando datos...")
     data = getData()
 
     # Validando errores
     for x in data:
         if list(x.values())[0]:
-            st.warning(f"Se ha producido el siguiente error: {list(x.values())[0][0]}", icon="⚠️")
+            st.warning(
+                f"Se ha producido el siguiente error: {list(x.values())[0][0]}",
+                icon="⚠️",
+            )
             # print(f"Se ha producido el siguiente error: {list(x.values())[0][0]}")
             break
         else:
@@ -173,15 +174,134 @@ def main():
 
     # Generando desplegable criptoactivo
     crypto_selected = st.selectbox(
-    'Seleccione el criptoactivo a analizar',
-    ('Bitcoin ₿', 'Ethereum ⧫'))
+        "Seleccione el criptoactivo a analizar", ("Bitcoin ₿", "Ethereum ⧫")
+    )
 
     currency_selected = st.selectbox(
-    'Tipo de cambio',
-    ('Dólar estadounidense $', 'Euro €'))
+        "Tipo de cambio", ("Dólar estadounidense $", "Euro €")
+    )
 
-    # Generando visualizaciones
-    # df_test = df[df["pair_name"] == "XXBTZUSD"]
+    # Generando par
+    pair_name = (
+       'X' + cryptos_dict[crypto_selected] + 'Z' + currencies_dict[currency_selected]
+    )
+
+
+    # Filtrando data frame
+    df_filtered = df[df['pair_name'] == pair_name]
+    
+    # Precio actual
+    actual_price = df_filtered["close"].iloc[-1]
+
+    # Generando panales de indicadores
+
+    tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
+
+    with tab1:
+        st.header(f"{crypto_selected}")
+        st.caption(cryptos_dict[crypto_selected])
+        st.metric(label=f"Precio en {currency_selected}", value=actual_price)
+        hovertext = []
+        for i in range(len(df_filtered["open"])):
+            hovertext.append("<br>Precio: " + str(actual_price))
+
+        fig = go.Figure(
+            data=go.Ohlc(
+                x=df_filtered["time"],
+                open=df_filtered["open"],
+                high=df_filtered["high"],
+                low=df_filtered["low"],
+                close=df_filtered["close"],
+                text=hovertext,
+                hoverinfo="text",
+            )
+        )
+
+        fig.update_layout(
+            title="Precio histórico. Últimos 720 periodos",
+            yaxis_title="Precio",
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tab2:
+        st.header(f"{crypto_selected}")
+        st.caption(cryptos_dict[crypto_selected])
+        st.title("Media móvil")
+
+        hovertext = []
+        for i in range(len(df_filtered["open"])):
+            hovertext.append("<br>Precio: " + str(actual_price))
+
+        fig = go.Figure(
+            data=[
+                go.Ohlc(
+                    x=df_filtered["time"],
+                    open=df_filtered["open"],
+                    high=df_filtered["high"],
+                    low=df_filtered["low"],
+                    close=df_filtered["close"],
+                    text=hovertext,
+                    hoverinfo="text",
+                    name="Precio",
+                ),
+                go.Scatter(
+                    x=df_filtered["time"],
+                    y=df_filtered["SMA25"],
+                    line=dict(color="blue", width=1),
+                    name="Media móvil 25 períodos",
+                ),
+            ]
+        )
+
+        fig.update_layout(
+            title="Media móvil. Últimos 720 periodos", 
+            yaxis_title="Precio"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+
+    with tab3:
+        st.header(f"{crypto_selected}")
+        st.caption(cryptos_dict[crypto_selected])
+        st.title("RSI")
+        hovertext = []
+        for i in range(len(df_filtered["open"])):
+            hovertext.append("<br>Precio: " + str(actual_price))
+        layout = {"yaxis": {"domain": [0, 0.33]}, "yaxis2": {"domain": [0.33, 1]}}
+        fig = go.Figure(
+            data=[
+                go.Ohlc(
+                    x=df_filtered["time"],
+                    open=df_filtered["open"],
+                    high=df_filtered["high"],
+                    low=df_filtered["low"],
+                    close=df_filtered["close"],
+                    text=hovertext,
+                    hoverinfo="text",
+                    name="Precio",
+                    yaxis="y2",
+                ),
+                go.Scatter(
+                    x=df_filtered["time"],
+                    y=df_filtered["RSI"],
+                    line=dict(color="purple", width=1),
+                    name="Índice de fortaleza realativa",
+                    yaxis="y",
+                ),
+            ],
+            layout=layout,
+        )
+
+        fig.update_layout(
+            title="Índice de fortaleza relativa (RSI). Últimos 720 periodos",
+            yaxis_title="Precio",
+            showlegend=False,
+            xaxis_rangeslider_visible=False,
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
     # Gráfico precio
     # hovertext = []
