@@ -18,6 +18,7 @@ import krakenex
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import datetime as datetime
 
 # Definiendo variables locales
 # Asignando API de Kraken como variable global
@@ -30,6 +31,10 @@ cryptos_dict = dict(zip(("Bitcoin ₿", "Ethereum ⧫"), cryptos))
 currencies_dict = dict(zip(("Dólar estadounidense $", "Euro €"), currencies))
 
 # Definiendo funciones
+
+# Función para extraer activos disponibles
+def extracAssets():
+    return list(kraken.query_public('Assets')['result'].keys())
 
 # Función de limpieza de datos
 def cleaningData(df):
@@ -147,6 +152,7 @@ def main():
 
     # Extrayendo datos
     data_load_state = st.text("Cargando datos...")
+    assets = extracAssets()
     data = getData()
 
     # Validando errores
@@ -179,6 +185,11 @@ def main():
 
     currency_selected = st.selectbox(
         "Tipo de cambio", ("Dólar estadounidense $", "Euro €")
+    )
+
+    # Selección de fecha
+    my_selector = st.selectbox(
+        "Activos disponibles", assets
     )
 
     # Generando par
