@@ -17,10 +17,13 @@
 import krakenex
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import datetime
 import time
 from dateutil.relativedelta import relativedelta
 import streamlit as st
+from plotly.subplots import make_subplots
+
 
 # Definiendo variables globales
 # Asignando API de Kraken como variable global
@@ -127,7 +130,12 @@ def defineTimeFrames(server_time):
     week = server_time - relativedelta(weeks=1)
     month = server_time - relativedelta(month=1)
     year = server_time - relativedelta(years=1)
-    return {"hour": hour, "day": day, "week": week, "month": month, "year": year}
+    return {
+        "hour": hour, 
+        "day": day, 
+        "week": week, 
+        "month": month, 
+        "year": year}
 
 # Función para transformar
 # fecha de tipo datetime a epoch
@@ -206,18 +214,21 @@ def main():
     # Verificando conexión
     if system_status['status']:
         if system_status['status'] == 'online':
-            st.success('Conexión establecida!', icon="✅")
+            message = 'Conexión establecida!' 
+            icon="✅"
         else:
-            st.warning(system_status['status'], icon="⚠️")
+            message = system_status['status']
+            icon="⚠️"
     else:
         st.error(system_status['error'], icon="🚨")
         exit()
     
     # Estableciendo hora del servidor
-    end_date = serverTime()
+    end_date = datetime.datetime.now()
 
     #Definiendo marco temporal por defecto de 24 horas
-    start_date = defineTimeFrames(datetime.datetime.utcfromtimestamp(end_date['unixtime']))
+    # start_date = defineTimeFrames(datetime.datetime.utcfromtimestamp(end_date['unixtime']))
+    start_date = defineTimeFrames(end_date)
     start_date = transformDatetimeToEpohc(start_date['hour'])
 
     # Cargando activos
@@ -258,8 +269,7 @@ def main():
 
     # Filtrando la lista para localizar las posibles combinaciones con las criptomonedas a analizar
     tradable_assets['inlist'] = tradable_assets['base'].isin(assets)
-    tradable_assets = tradable_assets[tradable_assets['inlist'] == True]
-    
+    tradable_assets = tradable_assets[tradable_assets['inlist'] == True]    
 
     # Generando desplegables
     asset_selected = st.selectbox(
@@ -271,131 +281,59 @@ def main():
     )
 
     #Cargando datos
-
     with st.spinner('Cargando datos'):
-        # @st.cache
-        # data_load_state = st.text("Cargando datos...")
-        data = getData(start_date, end_date['unixtime'], None, asset_selected, quote_selected)
-        # data_load_state = st.text("Datos cargados")
-    st.success('Datos cargados!')
+        data = getData(start_date, transformDatetimeToEpohc(end_date), None, asset_selected, quote_selected)
+
 
     # Limpieza de datos
+    try:
+        data = cleaningData(data)
+        data = calculateMovingAverage(data)
+        data = calculateRsi(data)
 
-    data = cleaningData(data)
+        # Precio actual
+        st.metric(label=f"Precio actual", value=data['price'].iloc[-1])
 
-    st.dataframe(data)
+        # Generando panales de indicadores
+        tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
 
-    # Precio actual
-    st.metric(label=f"Precio actual", value=data['price'].iloc[-1])
+        with tab1:
+            st.header(f"Precio {asset_selected} en {quote_selected}")
+            st.metric(label=f"Precio en {quote_selected}", value=data['price'].iloc[-1])
+            fig = px.line(data, data['time'], data['price'])
+            st.plotly_chart(fig, use_container_width=True)
 
+        with tab2:
+            st.header(f"Media móvil de {asset_selected} en {quote_selected}")
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatter(x=data['time'], y=data['price'],
+                                mode='lines',
+                                name='Precio'))
+            fig.add_trace(go.Scatter(x=data['time'], y=data['SMA25'],
+                                mode='lines',
+                                name='SMA25'))
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Generando panales de indicadores
+        with tab3:
+            st.header(f"RSI de {asset_selected} en {quote_selected}")
+            fig = make_subplots(rows=2, cols=1, row_heights=[0.7, 0.3])
 
-    # tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
+            fig.add_trace(
+                go.Scatter(x=data['time'], y=data['price']), 
+                    row=1, col=1)
 
-    # with tab1:
-    #     st.header(f"{crypto_selected}")
-    #     st.caption(cryptos_dict[crypto_selected])
-    #     st.metric(label=f"Precio en {currency_selected}", value=actual_price)
-    #     hovertext = []
-    #     for i in range(len(df_filtered["open"])):
-    #         hovertext.append("<br>Precio: " + str(actual_price))
+            fig.add_trace(
+                go.Scatter(x=data['time'], y=data['RSI']), 
+                    row=2, col=1)
 
-    #     fig = go.Figure(
-    #         data=go.Ohlc(
-    #             x=df_filtered["time"],
-    #             open=df_filtered["open"],
-    #             high=df_filtered["high"],
-    #             low=df_filtered["low"],
-    #             close=df_filtered["close"],
-    #             text=hovertext,
-    #             hoverinfo="text",
-    #         )
-    #     )
+            st.plotly_chart(fig, use_container_width=True)
 
-    #     fig.update_layout(
-    #         title="Precio histórico. Últimos 720 periodos",
-    #         yaxis_title="Precio",
-    #     )
+    
+    except TypeError:
+        pass
 
-    #     st.plotly_chart(fig, use_container_width=True)
-
-    # with tab2:
-    #     st.header(f"{crypto_selected}")
-    #     st.caption(cryptos_dict[crypto_selected])
-    #     st.title("Media móvil")
-
-    #     hovertext = []
-    #     for i in range(len(df_filtered["open"])):
-    #         hovertext.append("<br>Precio: " + str(actual_price))
-
-    #     fig = go.Figure(
-    #         data=[
-    #             go.Ohlc(
-    #                 x=df_filtered["time"],
-    #                 open=df_filtered["open"],
-    #                 high=df_filtered["high"],
-    #                 low=df_filtered["low"],
-    #                 close=df_filtered["close"],
-    #                 text=hovertext,
-    #                 hoverinfo="text",
-    #                 name="Precio",
-    #             ),
-    #             go.Scatter(
-    #                 x=df_filtered["time"],
-    #                 y=df_filtered["SMA25"],
-    #                 line=dict(color="blue", width=1),
-    #                 name="Media móvil 25 períodos",
-    #             ),
-    #         ]
-    #     )
-
-    #     fig.update_layout(
-    #         title="Media móvil. Últimos 720 periodos", yaxis_title="Precio"
-    #     )
-
-    #     st.plotly_chart(fig, use_container_width=True)
-
-    # with tab3:
-    #     st.header(f"{crypto_selected}")
-    #     st.caption(cryptos_dict[crypto_selected])
-    #     st.title("RSI")
-    #     hovertext = []
-    #     for i in range(len(df_filtered["open"])):
-    #         hovertext.append("<br>Precio: " + str(actual_price))
-    #     layout = {"yaxis": {"domain": [0, 0.33]}, "yaxis2": {"domain": [0.33, 1]}}
-    #     fig = go.Figure(
-    #         data=[
-    #             go.Ohlc(
-    #                 x=df_filtered["time"],
-    #                 open=df_filtered["open"],
-    #                 high=df_filtered["high"],
-    #                 low=df_filtered["low"],
-    #                 close=df_filtered["close"],
-    #                 text=hovertext,
-    #                 hoverinfo="text",
-    #                 name="Precio",
-    #                 yaxis="y2",
-    #             ),
-    #             go.Scatter(
-    #                 x=df_filtered["time"],
-    #                 y=df_filtered["RSI"],
-    #                 line=dict(color="purple", width=1),
-    #                 name="Índice de fortaleza realativa",
-    #                 yaxis="y",
-    #             ),
-    #         ],
-    #         layout=layout,
-    #     )
-
-    #     fig.update_layout(
-    #         title="Índice de fortaleza relativa (RSI). Últimos 720 periodos",
-    #         yaxis_title="Precio",
-    #         showlegend=False,
-    #         xaxis_rangeslider_visible=False,
-    #     )
-
-    #     st.plotly_chart(fig, use_container_width=True)
+    info_display = st.info(message, icon=icon)
 
 if __name__ == "__main__":
     main()
