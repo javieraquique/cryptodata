@@ -17,25 +17,97 @@
 import krakenex
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
+import datetime
+import time
+from dateutil.relativedelta import relativedelta
 import streamlit as st
+from plotly.subplots import make_subplots
 
-# Definiendo variables locales
+
+# Definiendo variables globales
 # Asignando API de Kraken como variable global
 kraken = krakenex.API()
 
-# Asignando criptomonédas a analizar y tipos de cambio
-cryptos = ["XBT", "ETH"]
-currencies = ["USD", "EUR"]
-cryptos_dict = dict(zip(("Bitcoin ₿", "Ethereum ⧫"), cryptos))
-currencies_dict = dict(zip(("Dólar estadounidense $", "Euro €"), currencies))
-
 # Definiendo funciones
 
-# Función de limpieza de datos
+# Función para determinar la hora del servidor
+
+
+def serverTime():
+    server_time = kraken.query_public("Time")
+    if server_time["error"]:
+        return server_time["error"]
+    else:
+        return server_time["result"]
+
+
+# Función para determinar el estado del sistema
+def systemStatus():
+    system_status = kraken.query_public("SystemStatus")
+    if system_status["error"]:
+        return system_status["error"]
+    else:
+        return system_status["result"]
+
+
+# Función para extraer los datos
+def getData(start_date, end_date, old_data, asset_selected, quote_selected):
+    new_data = kraken.query_public(
+        "Trades",
+        {"pair": asset_selected + quote_selected, "since": int(start_date)},
+    )
+
+    if new_data["error"]:
+        st.error(new_data['error'], icon="🚨")
+    else:
+        new_data = buildDf(
+            new_data["result"][asset_selected + quote_selected]
+        )
+
+        if old_data is None:
+            pass
+        else:
+            new_data = pd.concat([old_data, new_data], axis=0)
+
+        new_start_date = new_data["time"].iloc[-1]
+
+        if new_start_date >= end_date:
+            pass
+        else:
+            time.sleep(1.8)
+            new_data = getData(
+                new_start_date,
+                end_date, new_data,
+                asset_selected,
+                quote_selected)
+
+        return new_data
+
+
+# Función para construir el Dataframe
+def buildDf(data):
+    df = pd.DataFrame.from_records(
+        data,
+        columns=[
+            "price",
+            "volume",
+            "time",
+            "buy/sell",
+            "market/limit",
+            "miscellaneous",
+            "?",
+        ],
+    )
+
+    return df
+
+
+# Función para limpieza de datos
 def cleaningData(df):
 
     time_vars = ["time"]
-    float_vars = ["open", "high", "low", "close", "vwap", "volume"]
+    float_vars = ["price", "volume"]
 
     for var in time_vars:
         df[var] = pd.to_datetime(df[var], unit="s")
@@ -43,62 +115,54 @@ def cleaningData(df):
     for var in float_vars:
         df[var] = pd.to_numeric(df[var], errors="coerce")
 
-    return df
-
-
-# Función para extraer los datos
-@st.cache
-def getData():
-    ohlc = []
-    for crypto in cryptos:
-        for currency in currencies:
-            try:
-                fresh_data = kraken.query_public("OHLC", {"pair": crypto + currency})
-                ohlc.append(fresh_data)
-            except kraken.query_public("OHLC", {"pair": crypto + currency})[
-                "error"
-            ] as e:
-                print(e)
-
-    return ohlc
-
-
-# Función para constriuir el Data Frame
-def buildDf(data):
-    df = pd.DataFrame()
-    for pair in data:
-        pair_name = list(pair["result"].keys())[0]
-        pair_data = pair["result"][pair_name]
-        pair_df = pd.DataFrame.from_records(
-            pair_data,
-            columns=["time", "open", "high", "low", "close", "vwap", "volume", "count"],
-        )
-        pair_df["pair_name"] = pair_name
-        df = pd.concat([df, pair_df], axis=0)
+    df.reset_index(inplace=True, drop=True)
+    df = df.sort_values(by=['time'])
 
     return df
 
 
-# Función generar media móvil
+# Función para definir marco temporal
+
+def defineTimeFrames(server_time):
+    # now = datetime.datetime.now()
+    hour = server_time - datetime.timedelta(hours=1)
+    day = server_time - datetime.timedelta(days=1)
+    week = server_time - relativedelta(weeks=1)
+    month = server_time - relativedelta(month=1)
+    year = server_time - relativedelta(years=1)
+    return {
+        "hour": hour, 
+        "day": day, 
+        "week": week, 
+        "month": month, 
+        "year": year}
+
+# Función para transformar
+# fecha de tipo datetime a epoch
+
+
+def transformDatetimeToEpohc(since):
+    return int(time.mktime((since).timetuple()))
+
+
+# Función para generar la media móvil
 def calculateMovingAverage(df):
-
-    df["SMA25"] = df["close"].rolling(25).mean()
-
+    df["SMA25"] = df["price"].rolling(25).mean()
     return df
 
 
-# Función generar RSI
+# Función para generar RSI
 def calculateRsi(df, periods=14, ema=True):
     """
     Returns a pd.Series with the relative strength index.
     """
-    close_delta = df["close"].diff()
+    close_delta = df["price"].diff()
 
     # Make two series: one for lower closes and one for higher closes
     up = close_delta.clip(lower=0)
     down = -1 * close_delta.clip(upper=0)
 
-    if ema:
+    if ema == True:
         # Use exponential moving average
         ma_up = up.ewm(com=periods - 1, adjust=True, min_periods=periods).mean()
         ma_down = down.ewm(com=periods - 1, adjust=True, min_periods=periods).mean()
@@ -114,7 +178,7 @@ def calculateRsi(df, periods=14, ema=True):
     return df
 
 
-# Función generar indicadores
+# Función para calcular indicadores
 def calculateIndicators(df):
 
     # Identificando todos los pares disponibles en la extracción
@@ -132,10 +196,9 @@ def calculateIndicators(df):
         list_of_dfs.append(df_pair)
 
     # Uniendo todos los data frames en un solo data frame resultante
-    new_df = pd.DataFrame()
-    for x in list_of_dfs:
-        new_df = new_df.append(x)
-    return new_df
+    # new_df = pd.DataFrame()
+    dfs = [df.reset_index(drop=True) for df in list_of_dfs]
+    return pd.concat(dfs, axis=0)
 
 
 # Definiendo la función principal
@@ -143,260 +206,134 @@ def main():
 
     st.title("cryptoData")
     st.header("Indicadores de criptoactivos en tiempo real!")
-    st.caption("Datos extraídos de la API Krakenex")
 
-    # Extrayendo datos
-    data_load_state = st.text("Cargando datos...")
-    data = getData()
-
-    # Validando errores
-    for x in data:
-        if list(x.values())[0]:
-            st.warning(
-                f"Se ha producido el siguiente error: {list(x.values())[0][0]}",
-                icon="⚠️",
-            )
-            # print(f"Se ha producido el siguiente error: {list(x.values())[0][0]}")
-            break
-        else:
-            # st.success('Datos cargados correctamente!', icon="✅")
-            data_load_state.text("Datos cargados correctamente 👍")
-
-    # Construyendo Data Frame
-    df = buildDf(data)
-    df = df.reset_index(drop=True)
-
-    # Limpiando datos
-    df = cleaningData(df)
-
-    # Calculado indicadores
-    df = calculateIndicators(df)
-
-    # Generando desplegable criptoactivo
-    crypto_selected = st.selectbox(
-        "Seleccione el criptoactivo a analizar", ("Bitcoin ₿", "Ethereum ⧫")
-    )
-
-    currency_selected = st.selectbox(
-        "Tipo de cambio", ("Dólar estadounidense $", "Euro €")
-    )
-
-    # Generando par
-    pair_name = (
-       'X' + cryptos_dict[crypto_selected] + 'Z' + currencies_dict[currency_selected]
-    )
-
-
-    # Filtrando data frame
-    df_filtered = df[df['pair_name'] == pair_name]
+    # Inicializando flujo de trabajo
+    # Determinando estado del sistema
+    system_status = systemStatus()
     
-    # Precio actual
-    actual_price = df_filtered["close"].iloc[-1]
+    # Verificando conexión
+    if system_status['status']:
+        if system_status['status'] == 'online':
+            message = 'Conexión establecida!' 
+            icon="✅"
+        else:
+            message = system_status['status']
+            icon="⚠️"
+    else:
+        st.error(system_status['error'], icon="🚨")
+        exit()
+    
+    # Estableciendo hora del servidor
+    end_date = datetime.datetime.now()
 
-    # Generando panales de indicadores
+    #Definiendo marco temporal por defecto de 24 horas
+    # start_date = defineTimeFrames(datetime.datetime.utcfromtimestamp(end_date['unixtime']))
+    start_date = defineTimeFrames(end_date)
+    start_date = transformDatetimeToEpohc(start_date['hour'])
 
-    tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
+    # Cargando activos
+    # Extrayendo las cryptomonedas a analizar
+    assets = list(kraken.query_public('Assets', {'asset':'XBT, ETH'})['result'].keys())
 
-    with tab1:
-        st.header(f"{crypto_selected}")
-        st.caption(cryptos_dict[crypto_selected])
-        st.metric(label=f"Precio en {currency_selected}", value=actual_price)
-        hovertext = []
-        for i in range(len(df_filtered["open"])):
-            hovertext.append("<br>Precio: " + str(actual_price))
+    #Extrayendo todos pares disponibles en la API
+    all_tradable_assets = []
+    for item in kraken.query_public('AssetPairs')['result'].items():
+        all_tradable_assets.append(item[1])
 
-        fig = go.Figure(
-            data=go.Ohlc(
-                x=df_filtered["time"],
-                open=df_filtered["open"],
-                high=df_filtered["high"],
-                low=df_filtered["low"],
-                close=df_filtered["close"],
-                text=hovertext,
-                hoverinfo="text",
-            )
-        )
+    # Generando Data frame con todos los pares disponibles en la API
+    tradable_assets = pd.DataFrame.from_records(
+    all_tradable_assets,
+    columns=[
+        'altname',
+        'wsname	',
+        'aclass_base',
+        'base',
+        'aclass_quote',
+        'quote',
+        'lot',
+        'cost_decimals',
+        'pair_decimals',
+        'lot_decimals',
+        'lot_multiplier',
+        'leverage_buy',
+        'leverage_sell',
+        'fees',
+        'fees_maker',
+        'fee_volume_currency',
+        'margin_call',
+        'margin_stop',
+        'ordermin',
+        'costmin',
+        'tick_size',
+        'status'])
 
-        fig.update_layout(
-            title="Precio histórico. Últimos 720 periodos",
-            yaxis_title="Precio",
-        )
+    # Filtrando la lista para localizar las posibles combinaciones con las criptomonedas a analizar
+    tradable_assets['inlist'] = tradable_assets['base'].isin(assets)
+    tradable_assets = tradable_assets[tradable_assets['inlist'] == True]    
 
-        st.plotly_chart(fig, use_container_width=True)
+    # Generando desplegables
+    asset_selected = st.selectbox(
+        "Seleccione el criptoactivo a analizar", assets
+    )
 
-    with tab2:
-        st.header(f"{crypto_selected}")
-        st.caption(cryptos_dict[crypto_selected])
-        st.title("Media móvil")
+    quote_selected = st.selectbox(
+        "Tipo de cambio", tradable_assets[tradable_assets['base'] == asset_selected]['quote']
+    )
 
-        hovertext = []
-        for i in range(len(df_filtered["open"])):
-            hovertext.append("<br>Precio: " + str(actual_price))
-
-        fig = go.Figure(
-            data=[
-                go.Ohlc(
-                    x=df_filtered["time"],
-                    open=df_filtered["open"],
-                    high=df_filtered["high"],
-                    low=df_filtered["low"],
-                    close=df_filtered["close"],
-                    text=hovertext,
-                    hoverinfo="text",
-                    name="Precio",
-                ),
-                go.Scatter(
-                    x=df_filtered["time"],
-                    y=df_filtered["SMA25"],
-                    line=dict(color="blue", width=1),
-                    name="Media móvil 25 períodos",
-                ),
-            ]
-        )
-
-        fig.update_layout(
-            title="Media móvil. Últimos 720 periodos", 
-            yaxis_title="Precio"
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+    #Cargando datos
+    with st.spinner('Cargando datos'):
+        data = getData(start_date, transformDatetimeToEpohc(end_date), None, asset_selected, quote_selected)
 
 
-    with tab3:
-        st.header(f"{crypto_selected}")
-        st.caption(cryptos_dict[crypto_selected])
-        st.title("RSI")
-        hovertext = []
-        for i in range(len(df_filtered["open"])):
-            hovertext.append("<br>Precio: " + str(actual_price))
-        layout = {"yaxis": {"domain": [0, 0.33]}, "yaxis2": {"domain": [0.33, 1]}}
-        fig = go.Figure(
-            data=[
-                go.Ohlc(
-                    x=df_filtered["time"],
-                    open=df_filtered["open"],
-                    high=df_filtered["high"],
-                    low=df_filtered["low"],
-                    close=df_filtered["close"],
-                    text=hovertext,
-                    hoverinfo="text",
-                    name="Precio",
-                    yaxis="y2",
-                ),
-                go.Scatter(
-                    x=df_filtered["time"],
-                    y=df_filtered["RSI"],
-                    line=dict(color="purple", width=1),
-                    name="Índice de fortaleza realativa",
-                    yaxis="y",
-                ),
-            ],
-            layout=layout,
-        )
+    # Limpieza de datos
+    try:
+        data = cleaningData(data)
+        data = calculateMovingAverage(data)
+        data = calculateRsi(data)
 
-        fig.update_layout(
-            title="Índice de fortaleza relativa (RSI). Últimos 720 periodos",
-            yaxis_title="Precio",
-            showlegend=False,
-            xaxis_rangeslider_visible=False,
-        )
+        # Precio actual
+        st.metric(label=f"Precio actual", value=data['price'].iloc[-1])
 
-        st.plotly_chart(fig, use_container_width=True)
+        # Generando panales de indicadores
+        tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
 
-    # Gráfico precio
-    # hovertext = []
-    # for i in range(len(df_test["open"])):
-    #     hovertext.append("<br>Precio: " + str(df_test["close"][i]))
+        with tab1:
+            st.header(f"Precio {asset_selected} en {quote_selected}")
+            st.metric(label=f"Precio en {quote_selected}", value=data['price'].iloc[-1])
+            fig = px.line(data, data['time'], data['price'])
+            st.plotly_chart(fig, use_container_width=True)
 
-    # fig = go.Figure(
-    #     data=go.Ohlc(
-    #         x=df_test["time"],
-    #         open=df_test["open"],
-    #         high=df_test["high"],
-    #         low=df_test["low"],
-    #         close=df_test["close"],
-    #         text=hovertext,
-    #         hoverinfo="text",
-    #     )
-    # )
+        with tab2:
+            st.header(f"Media móvil de {asset_selected} en {quote_selected}")
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatter(x=data['time'], y=data['price'],
+                                mode='lines',
+                                name='Precio'))
+            fig.add_trace(go.Scatter(x=data['time'], y=data['SMA25'],
+                                mode='lines',
+                                name='SMA25'))
+            st.plotly_chart(fig, use_container_width=True)
 
-    # fig.update_layout(
-    #     title="Precio histórico. Últimos 720 periodos",
-    #     yaxis_title="Precio del par XXBTZUSD",
-    # )
+        with tab3:
+            st.header(f"RSI de {asset_selected} en {quote_selected}")
+            fig = make_subplots(rows=2, cols=1, row_heights=[0.7, 0.3])
 
-    # fig.show()
+            fig.add_trace(
+                go.Scatter(x=data['time'], y=data['price']), 
+                    row=1, col=1)
 
-    # Gráfico média móvil
-    # hovertext = []
-    # for i in range(len(df_test["open"])):
-    #     hovertext.append("<br>Precio: " + str(df_test["close"][i]))
+            fig.add_trace(
+                go.Scatter(x=data['time'], y=data['RSI']), 
+                    row=2, col=1)
 
-    # fig = go.Figure(
-    #     data=[
-    #         go.Ohlc(
-    #             x=df_test["time"],
-    #             open=df_test["open"],
-    #             high=df_test["high"],
-    #             low=df_test["low"],
-    #             close=df_test["close"],
-    #             text=hovertext,
-    #             hoverinfo="text",
-    #             name="Precio",
-    #         ),
-    #         go.Scatter(
-    #             x=df_test["time"],
-    #             y=df_test["SMA25"],
-    #             line=dict(color="blue", width=1),
-    #             name="Media móvil 25 períodos",
-    #         ),
-    #     ]
-    # )
+            st.plotly_chart(fig, use_container_width=True)
 
-    # fig.update_layout(
-    #     title="Media móvil. Últimos 720 periodos", yaxis_title="Precio del par XXBTZUSD"
-    # )
+    
+    except TypeError:
+        pass
 
-    # fig.show()
-
-    # # Gráfico RSI
-    # hovertext = []
-    # for i in range(len(df_test["open"])):
-    #     hovertext.append("<br>Precio: " + str(df_test["close"][i]))
-    # layout = {"yaxis": {"domain": [0, 0.33]}, "yaxis2": {"domain": [0.33, 1]}}
-    # fig = go.Figure(
-    #     data=[
-    #         go.Ohlc(
-    #             x=df_test["time"],
-    #             open=df_test["open"],
-    #             high=df_test["high"],
-    #             low=df_test["low"],
-    #             close=df_test["close"],
-    #             text=hovertext,
-    #             hoverinfo="text",
-    #             name="Precio",
-    #             yaxis="y2",
-    #         ),
-    #         go.Scatter(
-    #             x=df_test["time"],
-    #             y=df_test["RSI"],
-    #             line=dict(color="purple", width=1),
-    #             name="Índice de fortaleza realativa",
-    #             yaxis="y",
-    #         ),
-    #     ],
-    #     layout=layout,
-    # )
-
-    # fig.update_layout(
-    #     title="Índice de fortaleza relativa (RSI). Últimos 720 periodos",
-    #     yaxis_title="Precio del par XXBTZUSD",
-    #     showlegend=False,
-    #     xaxis_rangeslider_visible=False,
-    # )
-
-    # fig.show()
-
+    info_display = st.info(message, icon=icon)
 
 if __name__ == "__main__":
     main()
