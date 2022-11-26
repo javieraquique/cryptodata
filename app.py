@@ -112,6 +112,7 @@ def cleaningData(df):
 
 # Función para definir marco temporal
 
+
 def defineTimeFrames(server_time):
     # now = datetime.datetime.now()
     hour = server_time - datetime.timedelta(hours=1)
@@ -136,7 +137,7 @@ def transformDatetimeToEpohc(since):
 
 # Función para generar la media móvil
 def calculateMovingAverage(df):
-    df["SMA25"] = df["price"].rolling(25).mean()
+    df["SMA75"] = df["price"].rolling(75).mean()
     return df
 
 
@@ -180,7 +181,7 @@ def calculateIndicators(df):
 
         df_pair = calculateMovingAverage(df_pair)
         df_pair = calculateRsi(df_pair)
-        df_pair["SMA25"] = df_pair["close"].rolling(25).mean()
+        # df_pair["SMA75"] = df_pair["close"].rolling(50).mean()
 
         list_of_dfs.append(df_pair)
 
@@ -210,18 +211,12 @@ def main():
     else:
         st.error(system_status['error'], icon="🚨")
         exit()
+        
     
-    # Estableciendo hora del servidor
-    end_date = datetime.datetime.now()
-
-    #Definiendo marco temporal por defecto de 24 horas
-    # start_date = defineTimeFrames(datetime.datetime.utcfromtimestamp(end_date['unixtime']))
-    start_date = defineTimeFrames(end_date)
-    start_date = transformDatetimeToEpohc(start_date['hour'])
-
     # Cargando activos
     # Extrayendo las cryptomonedas a analizar
     assets = list(kraken.query_public('Assets', {'asset':'XBT, ETH'})['result'].keys())
+
     assets_dict = {}
     for asset in assets:
         asset_name = assets_codes_df[assets_codes_df['code'] == asset]['name']
@@ -263,34 +258,67 @@ def main():
     tradable_assets['inlist'] = tradable_assets['base'].isin(assets)
     tradable_assets = tradable_assets[tradable_assets['inlist'] == True]
 
-    
-    image = Image.open('img/cryptodata-logo.png')
+    #Estableciendo configuración de la página
+    st.set_page_config(
+    page_title="cryptoData",
+    page_icon="🦈",
+    layout="centered",
+    initial_sidebar_state="expanded",
+    menu_items={
 
+        'About': "# jaquiquepin@alumni.unav.es"
+    })
+    
+    # Importando logo
+    image = Image.open('img/cryptodata-logo.png')
+    
+
+    # Creando logo
     col1, col2, col3 = st.columns([0.1,0.6,0.1])
 
     with col1:
         st.empty()
     with col2:
-        st.image(image, caption='Analyzing crypto assets', width=500)
+        st.image(image, caption='Analizano criptoactivos', width=500)
     with col3:
         st.empty()
     
+    # Generando desplegables
     c = st.container()
 
     col3, col4 = st.columns([0.5,0.5])
     
     with c:
+        st.title("Seleccione una criptoactivo para analizar")
         with col3:
             asset_selected = st.selectbox(
-                "Seleccione el criptoactivo a analizar", assets_dict)
+                "Criptoactivo", assets_dict)
         with col4:
+            asset_selected_code = assets_codes_df[assets_codes_df['name'] == asset_selected]['code'].item()
             quote_selected = st.selectbox(
-        "Tipo de cambio", tradable_assets[tradable_assets['base'] == asset_selected]['quote'])
+                "Tipo de cambio", 
+                tradable_assets[tradable_assets['base'] == asset_selected_code]['quote'].sort_values(ascending=False))
 
+    # Selección de espacio temporal
+    st.title("Seleccione un espacio temporal")
+    time_frame = st.radio(
+        "Espacio temporal",
+        ('hour', 'day', 'month'),
+        horizontal=True
+        )
 
-    #Cargando datos
+    # Estableciendo hora del servidor
+    end_date = datetime.datetime.now()
+
+    #Definiendo marco temporal por defecto de 24 horas
+    # start_date = defineTimeFrames(datetime.datetime.utcfromtimestamp(end_date['unixtime']))
+    # time_frame = 'month'
+    start_date = defineTimeFrames(end_date)
+    start_date = transformDatetimeToEpohc(start_date[time_frame])
+
+    # Cargando datos
     with st.spinner('Cargando datos'):
-        data = getData(start_date, transformDatetimeToEpohc(end_date), None, asset_selected, quote_selected)
+        data = getData(start_date, transformDatetimeToEpohc(end_date), None, asset_selected_code, quote_selected)
 
 
     # Limpieza de datos
@@ -299,8 +327,7 @@ def main():
         data = calculateMovingAverage(data)
         data = calculateRsi(data)
 
-        # Precio actual
-        st.metric(label=f"Precio actual", value=data['price'].iloc[-1])
+
 
         # Generando panales de indicadores
         tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
@@ -318,9 +345,9 @@ def main():
             fig.add_trace(go.Scatter(x=data['time'], y=data['price'],
                                 mode='lines',
                                 name='Precio'))
-            fig.add_trace(go.Scatter(x=data['time'], y=data['SMA25'],
+            fig.add_trace(go.Scatter(x=data['time'], y=data['SMA75'],
                                 mode='lines',
-                                name='SMA25'))
+                                name='SMA75'))
             st.plotly_chart(fig, use_container_width=True)
 
         with tab3:
@@ -328,12 +355,20 @@ def main():
             fig = make_subplots(rows=2, cols=1, row_heights=[0.7, 0.3])
 
             fig.add_trace(
-                go.Scatter(x=data['time'], y=data['price']), 
-                    row=1, col=1)
+                go.Scatter(
+                    x=data['time'], 
+                    y=data['price'],
+                    name='Precio'), 
+                    row=1, 
+                    col=1)
 
             fig.add_trace(
-                go.Scatter(x=data['time'], y=data['RSI']), 
-                    row=2, col=1)
+                go.Scatter(
+                    x=data['time'],
+                    y=data['RSI'],
+                    name='RSI'), 
+                    row=2,
+                    col=1)
 
             st.plotly_chart(fig, use_container_width=True)
 
