@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-  ______ .______     ____    ____ .______   .___________.  ______    _______       ___   .___________.    ___      
- /      ||   _  \    \   \  /   / |   _  \  |           | /  __  \  |       \     /   \  |           |   /   \     
-|  ,----'|  |_)  |    \   \/   /  |  |_)  | `---|  |----`|  |  |  | |  .--.  |   /  ^  \ `---|  |----`  /  ^  \    
-|  |     |      /      \_    _/   |   ___/      |  |     |  |  |  | |  |  |  |  /  /_\  \    |  |      /  /_\  \   
-|  `----.|  |\  \----.   |  |     |  |          |  |     |  `--'  | |  '--'  | /  _____  \   |  |     /  _____  \  
- \______|| _| `._____|   |__|     | _|          |__|      \______/  |_______/ /__/     \__\  |__|    /__/     \__\ 
- 
- Indicadores de criptomonedas en tiempo real!
-
- Datos extraídos de kraken.com a través de la API krakenex
-"""
 
 # Importando librerías
 import krakenex
@@ -23,6 +11,7 @@ import time
 from dateutil.relativedelta import relativedelta
 import streamlit as st
 from plotly.subplots import make_subplots
+from PIL import Image
 
 
 # Definiendo variables globales
@@ -204,11 +193,10 @@ def calculateIndicators(df):
 # Definiendo la función principal
 def main():
 
-    st.title("cryptoData")
-    st.header("Indicadores de criptoactivos en tiempo real!")
+    # Cargando nombre de los pares
+    assets_codes_df = pd.read_csv("asset_names.csv")
 
-    # Inicializando flujo de trabajo
-    # Determinando estado del sistema
+    # Almacenando estado de la API
     system_status = systemStatus()
     
     # Verificando conexión
@@ -234,6 +222,10 @@ def main():
     # Cargando activos
     # Extrayendo las cryptomonedas a analizar
     assets = list(kraken.query_public('Assets', {'asset':'XBT, ETH'})['result'].keys())
+    assets_dict = {}
+    for asset in assets:
+        asset_name = assets_codes_df[assets_codes_df['code'] == asset]['name']
+        assets_dict[asset_name.iloc[0]] = asset
 
     #Extrayendo todos pares disponibles en la API
     all_tradable_assets = []
@@ -269,16 +261,32 @@ def main():
 
     # Filtrando la lista para localizar las posibles combinaciones con las criptomonedas a analizar
     tradable_assets['inlist'] = tradable_assets['base'].isin(assets)
-    tradable_assets = tradable_assets[tradable_assets['inlist'] == True]    
+    tradable_assets = tradable_assets[tradable_assets['inlist'] == True]
 
-    # Generando desplegables
-    asset_selected = st.selectbox(
-        "Seleccione el criptoactivo a analizar", assets
-    )
+    
+    image = Image.open('img/cryptodata-logo.png')
 
-    quote_selected = st.selectbox(
-        "Tipo de cambio", tradable_assets[tradable_assets['base'] == asset_selected]['quote']
-    )
+    col1, col2, col3 = st.columns([0.1,0.6,0.1])
+
+    with col1:
+        st.empty()
+    with col2:
+        st.image(image, caption='Analyzing crypto assets', width=500)
+    with col3:
+        st.empty()
+    
+    c = st.container()
+
+    col3, col4 = st.columns([0.5,0.5])
+    
+    with c:
+        with col3:
+            asset_selected = st.selectbox(
+                "Seleccione el criptoactivo a analizar", assets_dict)
+        with col4:
+            quote_selected = st.selectbox(
+        "Tipo de cambio", tradable_assets[tradable_assets['base'] == asset_selected]['quote'])
+
 
     #Cargando datos
     with st.spinner('Cargando datos'):
