@@ -21,9 +21,9 @@ kraken = krakenex.API()
 # Definiendo funciones
 
 # Función para determinar la hora del servidor
-
-
 def serverTime():
+
+
     server_time = kraken.query_public("Time")
     if server_time["error"]:
         return server_time["error"]
@@ -33,6 +33,8 @@ def serverTime():
 
 # Función para determinar el estado del sistema
 def systemStatus():
+
+
     system_status = kraken.query_public("SystemStatus")
     if system_status["error"]:
         return system_status["error"]
@@ -42,6 +44,8 @@ def systemStatus():
 
 # Función para extraer los datos
 def getData(start_date, end_date, old_data, asset_selected, quote_selected):
+
+
     new_data = kraken.query_public(
         "Trades",
         {"pair": asset_selected + quote_selected, "since": int(start_date)},
@@ -76,6 +80,8 @@ def getData(start_date, end_date, old_data, asset_selected, quote_selected):
 
 # Función para construir el Dataframe
 def buildDf(data):
+
+
     df = pd.DataFrame.from_records(
         data,
         columns=[
@@ -111,9 +117,9 @@ def cleaningData(df):
 
 
 # Función para definir marco temporal
-
-
 def defineTimeFrames(server_time):
+
+
     # now = datetime.datetime.now()
     hour = server_time - datetime.timedelta(hours=1)
     day = server_time - datetime.timedelta(days=1)
@@ -132,12 +138,19 @@ def defineTimeFrames(server_time):
 
 
 def transformDatetimeToEpohc(since):
+
+
     return int(time.mktime((since).timetuple()))
 
 
 # Función para generar la media móvil
 def calculateMovingAverage(df):
+
+
+    df["SMA25"] = df["price"].rolling(25).mean()
+    df["SMA50"] = df["price"].rolling(50).mean()
     df["SMA75"] = df["price"].rolling(75).mean()
+
     return df
 
 
@@ -277,10 +290,16 @@ def main():
     col1, col2, col3 = st.columns([0.1,0.6,0.1])
 
     with col1:
+
+
         st.empty()
     with col2:
+
+
         st.image(image, caption='Analizano criptoactivos', width=500)
     with col3:
+
+        
         st.empty()
     
     # Generando desplegables
@@ -289,11 +308,16 @@ def main():
     col3, col4 = st.columns([0.5,0.5])
     
     with c:
+
         st.title("Seleccione una criptoactivo para analizar")
+
         with col3:
+
             asset_selected = st.selectbox(
                 "Criptoactivo", assets_dict)
+
         with col4:
+
             asset_selected_code = assets_codes_df[assets_codes_df['name'] == asset_selected]['code'].item()
             quote_selected = st.selectbox(
                 "Tipo de cambio", 
@@ -301,6 +325,7 @@ def main():
 
     # Selección de espacio temporal
     st.title("Seleccione un espacio temporal")
+
     time_frame = st.radio(
         "Espacio temporal",
         ('hour', 'day', 'month'),
@@ -321,44 +346,85 @@ def main():
         data = getData(start_date, transformDatetimeToEpohc(end_date), None, asset_selected_code, quote_selected)
 
 
-    # Limpieza de datos
+    # Flujo de limpieza y cálculo de indicadores
     try:
+
+
         data = cleaningData(data)
         data = calculateMovingAverage(data)
         data = calculateRsi(data)
 
 
-
+        # Generando configuración de colores
+        palette = ['#102E44','#B2FCFB', '#FFFFFF']
         # Generando panales de indicadores
-        tab1, tab2, tab3 = st.tabs(["Precio", "Média móvil", "RSI"])
+        tab1, tab2, tab3 = st.tabs(["Precio", "Media móvil", "RSI"])
 
         with tab1:
+
+
             st.header(f"Precio {asset_selected} en {quote_selected}")
             st.metric(label=f"Precio en {quote_selected}", value=data['price'].iloc[-1])
-            fig = px.line(data, data['time'], data['price'])
+
+            fig = px.line(
+                data, 
+                data['time'], 
+                data['price'],
+                labels={
+                    'time': 'Tiempo',
+                    'price': 'Precio'
+                })
+
+            fig.update_traces(line_color='#102E44')
+
             st.plotly_chart(fig, use_container_width=True)
 
         with tab2:
+                
+
+            if time_frame == 'hour':
+                sma = 'SMA25'
+            elif time_frame == 'day':
+                sma = 'SMA50'
+            else:
+                sma = 'SMA75'
+
             st.header(f"Media móvil de {asset_selected} en {quote_selected}")
+
             fig = go.Figure()
             
-            fig.add_trace(go.Scatter(x=data['time'], y=data['price'],
-                                mode='lines',
-                                name='Precio'))
-            fig.add_trace(go.Scatter(x=data['time'], y=data['SMA75'],
-                                mode='lines',
-                                name='SMA75'))
+            fig.add_trace(go.Scatter(
+                x=data['time'], 
+                y=data['price'],
+                mode='lines',
+                name='Precio',
+                line_color='#102E44'))
+
+            fig.add_trace(go.Scatter(
+                x=data['time'], 
+                y=data[sma],
+                mode='lines',
+                name=sma))
+
+            fig.update_layout(
+                xaxis_title="Tiempo", 
+                yaxis_title="Precio")
+
             st.plotly_chart(fig, use_container_width=True)
 
         with tab3:
+
+
             st.header(f"RSI de {asset_selected} en {quote_selected}")
+
             fig = make_subplots(rows=2, cols=1, row_heights=[0.7, 0.3])
 
             fig.add_trace(
                 go.Scatter(
                     x=data['time'], 
                     y=data['price'],
-                    name='Precio'), 
+                    name='Precio',
+                    line_color='#102E44'), 
                     row=1, 
                     col=1)
 
@@ -369,6 +435,10 @@ def main():
                     name='RSI'), 
                     row=2,
                     col=1)
+
+            fig.update_layout(
+                xaxis_title="Tiempo", 
+                yaxis_title="Precio")
 
             st.plotly_chart(fig, use_container_width=True)
 
