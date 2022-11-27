@@ -1,0 +1,230 @@
+code,name,type
+1INCH,1inch,Cryptocurrency
+AAVE,Aave,Cryptocurrency
+ACA,Acala,Cryptocurrency
+ACH,Alchemy Pay,Cryptocurrency
+ADA,Cardano,Cryptocurrency
+ADX,Ambire AdEx,Cryptocurrency
+AGLD,Adventure Gold,Cryptocurrency
+AIR,Altair,Cryptocurrency
+AKT,Akash,Cryptocurrency
+ALCX,Alchemix,Cryptocurrency
+ALGO,Algorand,Cryptocurrency
+ALICE,My Neighbor Alice,Cryptocurrency
+ALPHA,Alpha Venture DAO,Cryptocurrency
+ANKR,Ankr,Cryptocurrency
+ANT,Aragon,Cryptocurrency
+APE,ApeCoin,Cryptocurrency
+API3,API3,Cryptocurrency
+APT,Aptos,Cryptocurrency
+ARPA,Arpa Chain,Cryptocurrency
+ASTR,Astar,Cryptocurrency
+ATLAS,Star Atlas,Cryptocurrency
+ATOM,Cosmos,Cryptocurrency
+AUDIO,Audius,Cryptocurrency
+AVAX,Avalanche,Cryptocurrency
+AXS,Axie Infinity,Cryptocurrency
+BADGER,Badger DAO,Cryptocurrency
+BAL,Balancer,Cryptocurrency
+BAND,Band Protocol,Cryptocurrency
+BAT,Basic Attention Token,Cryptocurrency
+BCH,Bitcoin Cash,Cryptocurrency
+BICO,Biconomy,Cryptocurrency
+BIT,BitDAO,Cryptocurrency
+BLZ,Bluzelle,Cryptocurrency
+BOBA,Boba Network,Cryptocurrency
+BOND,Barnbridge,Cryptocurrency
+BNC,Bifrost,Cryptocurrency
+BNT,Bancor,Cryptocurrency
+BSV*,Bitcoin SV,Cryptocurrency
+BSX,Basilisk,Cryptocurrency
+BTT,Bittorrent,Cryptocurrency
+CELR,Celer Network,Cryptocurrency
+CFG,Centrifuge,Cryptocurrency
+XCN,Chain,Cryptocurrency
+CHR,Chromia,Cryptocurrency
+CHZ,Chiliz,Cryptocurrency
+COTI,COTI,Cryptocurrency
+COMP,Compound,Cryptocurrency
+CQT,Covalent,Cryptocurrency
+CRV,Curve,Cryptocurrency
+CSM,Crust Shadow,Cryptocurrency
+CTSI,Cartesi,Cryptocurrency
+CVC,Civic,Cryptocurrency
+CVX,Convex Finance,Cryptocurrency
+C98,Coin98,Cryptocurrency
+DAI,Dai,Cryptocurrency
+DASH,Dash,Cryptocurrency
+DENT,Dent,Cryptocurrency
+DOT,Polkadot,Cryptocurrency
+DYDX,dYdX,Cryptocurrency
+EGLD,Elrond,Cryptocurrency
+ENJ,Enjin Coin,Cryptocurrency
+ENS,Ethereum Name Service,Cryptocurrency
+EOS,EOS,Cryptocurrency
+ETH2,Ethereum 2,Cryptocurrency
+ETHW**,EthereumPoW,Cryptocurrency
+EWT,Energy Web Token,Cryptocurrency
+FARM,Harvest Finance,Cryptocurrency
+FET,Fetch.ai,Cryptocurrency
+FIDA,Bonfida,Cryptocurrency
+FIL,Filecoin,Cryptocurrency
+FIS,Stafi Protocol,Cryptocurrency
+FLOW,Flow,Cryptocurrency
+FLR,Flare,Cryptocurrency
+FORTH,Ampleforth Governance Token,Cryptocurrency
+FTM,Fantom,Cryptocurrency
+FXS,Frax Share,Cryptocurrency
+GALA,Gala Games,Cryptocurrency
+GAL,Galxe,Cryptocurrency
+GARI,Gari Network,Cryptocurrency
+GHST,Aavegotchi,Cryptocurrency
+GLMR,Moonbeam,Cryptocurrency
+GMT,STEPN,Cryptocurrency
+GNO,Gnosis,Cryptocurrency
+GRT,The Graph,Cryptocurrency
+GST,Green Satoshi Token,Cryptocurrency
+GTC,Gitcoin,Cryptocurrency
+HFT,Hashflow,Cryptocurrency
+IDEX,IDEX,Cryptocurrency
+ICP,Internet Computer,Cryptocurrency
+ICX,ICON,Cryptocurrency
+IMX,Immutable X,Cryptocurrency
+INJ,Injective Protocol,Cryptocurrency
+INTR,Interlay,Cryptocurrency
+JASMY,Jasmy,Cryptocurrency
+JUNO,JUNO,Cryptocurrency
+KAR,Karura,Cryptocurrency
+KAVA,Kava,Cryptocurrency
+KEEP,Keep Network,Cryptocurrency
+KEY,SelfKey,Cryptocurrency
+KP3R,Keep3r Network,Cryptocurrency
+KILT,KILT,Cryptocurrency
+KIN,Kin,Cryptocurrency
+KINT,Kintsugi,Cryptocurrency
+KNC,Kyber Network,Cryptocurrency
+KSM,Kusama,Cryptocurrency
+LCX,Liechtenstein Cryptoassets Exchange,Cryptocurrency
+LDO,Lido DAO,Cryptocurrency
+LINK,Chainlink,Cryptocurrency
+LPT,Livepeer,Cryptocurrency
+LRC,Loopring,Cryptocurrency
+LSK,Lisk,Cryptocurrency
+LUNA,Terra Classic,Cryptocurrency
+LUNA2,Terra 2.0,Cryptocurrency
+MANA,Decentraland,Cryptocurrency
+MATIC,Polygon,Cryptocurrency
+MASK,Mask Network,Cryptocurrency
+MC,Merit Circle,Cryptocurrency
+MINA,Mina,Cryptocurrency
+MIR,Mirror Protocol,Cryptocurrency
+MKR,Maker,Cryptocurrency
+MNGO,Mango,Cryptocurrency
+MOVR,Moonriver,Cryptocurrency
+MSOL,Marinade SOL,Cryptocurrency
+MULTI,Multichain,Cryptocurrency
+MV,GensoKishi Metaverse,Cryptocurrency
+MXC,MXC,Cryptocurrency
+NANO,Nano,Cryptocurrency
+NEAR,Near Protocol,Cryptocurrency
+NMR,Numeraire,Cryptocurrency
+NODL,Nodle,Cryptocurrency
+NYM,Nym,Cryptocurrency
+OCEAN,Ocean,Cryptocurrency
+OGN,Origin Protocol,Cryptocurrency
+OMG,OMG Network,Cryptocurrency
+ORCA,Orca,Cryptocurrency
+OXT,Orchid,Cryptocurrency
+OXY,Oxygen,Cryptocurrency
+PARA,Parallel Finance,Cryptocurrency
+PAXG,PAX Gold,Cryptocurrency
+PERP,Perpetual Protocol,Cryptocurrency
+PHA,Phala,Cryptocurrency
+PLA,PlayDapp,Cryptocurrency
+POLS,Polkastarter,Cryptocurrency
+POLIS,Star Atlas DAO,Cryptocurrency
+POND,Marlin,Cryptocurrency
+POWR,Powerledger,Cryptocurrency
+PSTAKE,pSTAKE,Cryptocurrency
+QTUM,Qtum,Cryptocurrency
+QNT,Quant,Cryptocurrency
+RAD,Radicle,Cryptocurrency
+RARE,SuperRare,Cryptocurrency
+RARI,Rarible,Cryptocurrency
+RAY,Raydium,Cryptocurrency
+RBC,Rubic,Cryptocurrency
+REN,REN Protocol,Cryptocurrency
+REQ,Request,Cryptocurrency
+RLC,iExec,Cryptocurrency
+RNDR,Render,Cryptocurrency
+ROOK,KeeperDAO,Cryptocurrency
+RPL,Rocket Pool,Cryptocurrency
+RUNE,Thorchain,Cryptocurrency
+SAMO,Samoyed Coin,Cryptocurrency
+SAND,The Sandbox,Cryptocurrency
+SBR,Saber,Cryptocurrency
+SC,Siacoin,Cryptocurrency
+SCRT,Secret,Cryptocurrency
+SDN,Shiden,Cryptocurrency
+SGB,Songbird,Cryptocurrency
+SHIB,Shiba Inu,Cryptocurrency
+SNX,Synthetix,Cryptocurrency
+SOL,Solana,Cryptocurrency
+SPELL,Spell Token,Cryptocurrency
+SRM,Serum,Cryptocurrency
+STEP,Step Finance,Cryptocurrency
+STG,Stargate Finance,Cryptocurrency
+STORJ,Storj,Cryptocurrency
+STX,Stacks,Cryptocurrency
+SUPER,SuperFarm,Cryptocurrency
+SUSHI,Sushi,Cryptocurrency
+SXP,Swipe,Cryptocurrency
+SYN,Synapse,Cryptocurrency
+T,Threshold,Cryptocurrency
+TBTC,tBTC,Cryptocurrency
+TEER,Integritee,Cryptocurrency
+TLM,Alien Worlds,Cryptocurrency
+TOKE,Tokemak,Cryptocurrency
+TRIBE,Tribe,Cryptocurrency
+TRU,TrueFi,Cryptocurrency
+TRX,Tron,Cryptocurrency
+TVK,Terra Virtual Kolect,Cryptocurrency
+UMA,Universal Market Access,Cryptocurrency
+UNI,Uniswap,Cryptocurrency
+UNFI,Unifi Protocol DAO,Cryptocurrency
+USDT,Tether,Cryptocurrency
+USDC,USD Coin,Cryptocurrency
+UST,TerraUSD Classic,Cryptocurrency
+WAVE,WAVES,Cryptocurrency
+WBTC,Wrapped Bitcoin,Cryptocurrency
+WETH,Wrapped Ether,Cryptocurrency
+WOO,Woo Network,Cryptocurrency
+XDAO*,DAO,Cryptocurrency
+XETC,Ethereum Classic,Cryptocurrency
+XETH,Ethereum,Cryptocurrency
+XICN*,Iconomi,Cryptocurrency
+XLTC,Litecoin,Cryptocurrency
+XMLN,Enzyme Finance,Cryptocurrency
+XNMC*,Namecoin,Cryptocurrency
+XREP,Augur,Cryptocurrency
+XREPV2,Augur v2,Cryptocurrency
+XRT,Robonomics,Cryptocurrency
+XXBT,Bitcoin,Cryptocurrency
+XXDG,Dogecoin,Cryptocurrency
+XXLM,Stellar Lumens,Cryptocurrency
+XXMR,Monero,Cryptocurrency
+XXRP,Ripple,Cryptocurrency
+XXTZ,Tezos,Cryptocurrency
+XXVN*,Ven,Cryptocurrency
+XZEC,Zcash,Cryptocurrency
+YFI,Yearn Finance,Cryptocurrency
+YGG,Yield Guild Games,Cryptocurrency
+ZRX,0x,Cryptocurrency
+ZAUD,Australian Dollar,Cash
+ZCAD,Canadian Dollar,Cash
+ZCHF,Swiss Franc,Cash
+ZEUR,Euro,Cash
+ZGBP,Great British Pound,Cash
+ZJPY,Japanese Yen,Cash
+ZUSD,US Dollar,Cash
+KFEE,Kraken Fee Credits,Promotional Credit
