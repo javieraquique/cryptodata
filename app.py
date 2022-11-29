@@ -165,8 +165,8 @@ def calculateMovingAverage(df):
     a mayor espacio temporal, mayor el período de la media móvil
     """
     df["SMA25"] = df["price"].rolling(25).mean()
-    df["SMA50"] = df["price"].rolling(50).mean()
     df["SMA75"] = df["price"].rolling(75).mean()
+    df["SMA125"] = df["price"].rolling(125).mean()
 
     return df
 
@@ -332,7 +332,7 @@ def main():
 
     with c:
 
-        st.title("Seleccione una criptoactivo para analizar")
+        st.title("Seleccione un criptoactivo a analizar")
 
         with col3:
 
@@ -353,14 +353,11 @@ def main():
     # Selección de espacio temporal
     st.title("Seleccione un espacio temporal")
 
-    time_frame = st.radio("Espacio temporal", ("hour", "day", "month"), horizontal=True)
-
     # Estableciendo hora del servidor
     end_date = datetime.datetime.now()
 
     # Definiendo marco temporal por defecto de 24 horas
-    # start_date = defineTimeFrames(datetime.datetime.utcfromtimestamp(end_date['unixtime']))
-    # time_frame = 'month'
+    time_frame = st.radio("Espacio temporal", ("hour", "day", "month"), horizontal=True)
     start_date = defineTimeFrames(end_date)
     start_date = transformDatetimeToEpohc(start_date[time_frame])
 
@@ -381,8 +378,6 @@ def main():
         data = calculateMovingAverage(data)
         data = calculateRsi(data)
 
-        # Generando configuración de colores
-        palette = ["#102E44", "#B2FCFB", "#FFFFFF"]
         # Generando panales de indicadores
         tab1, tab2, tab3 = st.tabs(["Precio", "Media móvil", "RSI"])
 
@@ -407,9 +402,9 @@ def main():
             if time_frame == "hour":
                 sma = "SMA25"
             elif time_frame == "day":
-                sma = "SMA50"
-            else:
                 sma = "SMA75"
+            else:
+                sma = "SMA125"
 
             st.header(f"Media móvil de {asset_selected} en {quote_selected}")
 
