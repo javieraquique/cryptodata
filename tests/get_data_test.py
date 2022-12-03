@@ -22,7 +22,7 @@ def test_unsuccessful_get_pair():
 
     new_data = kraken.query_public(
     "Trades",
-    {"pair": asset_selected + quote_selected, "since": int(start_date)},
+    {"pair": asset_selected + quote_selected},
     )
 
     assert new_data['error']
